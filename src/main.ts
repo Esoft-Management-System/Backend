@@ -22,13 +22,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup(`${globalPrefix}/docs`, app, document);
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`Server running on http://localhost:${port}`);
-  console.log(
-    'Swagger docs available on: ',
-    `http://localhost:${port}/${globalPrefix}/docs`,
-  );
+  const port = Number(process.env.PORT) || 3000;
+  // listen on 0.0.0.0 so Render (and other hosts) can access the server externally
+  await app.listen(port, '0.0.0.0');
+
+  console.log(`Server running on port ${port}`);
+  console.log(`Swagger docs available at /${globalPrefix}/docs`);
 }
 
 void bootstrap();
