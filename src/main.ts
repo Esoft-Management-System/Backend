@@ -20,7 +20,22 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup(`${globalPrefix}/docs`, app, document);
+  const swaggerCustomOptions = {
+    customSiteTitle: 'Esoft Management API',
+    customCssUrl:
+      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.18.2/swagger-ui.css',
+    customJs: [
+      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.18.2/swagger-ui-bundle.js',
+      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.18.2/swagger-ui-standalone-preset.js',
+    ],
+  };
+
+  SwaggerModule.setup(
+    `${globalPrefix}/docs`,
+    app,
+    document,
+    swaggerCustomOptions,
+  );
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
