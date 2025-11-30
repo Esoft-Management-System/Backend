@@ -20,22 +20,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  const swaggerCustomOptions = {
-    customSiteTitle: 'Esoft Management API',
-    customCssUrl:
-      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.18.2/swagger-ui.css',
-    customJs: [
-      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.18.2/swagger-ui-bundle.js',
-      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.18.2/swagger-ui-standalone-preset.js',
-    ],
-  };
-
-  SwaggerModule.setup(
-    `${globalPrefix}/docs`,
-    app,
-    document,
-    swaggerCustomOptions,
-  );
+  SwaggerModule.setup(`${globalPrefix}/docs`, app, document);
 
   const port = Number(process.env.PORT) || 3000;
   // listen on 0.0.0.0 so Render (and other hosts) can access the server externally
