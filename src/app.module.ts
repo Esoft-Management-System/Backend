@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
+import { StaffRequestModule } from './staff-request/staff-request.module';
+import { AppController } from './app.controller';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -14,6 +17,8 @@ import { Connection } from 'mongoose';
         return connection;
       },
     }),
+    StaffRequestModule,
   ],
+  controllers: [AppController, HealthController],
 })
 export class AppModule {}
