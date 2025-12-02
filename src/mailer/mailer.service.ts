@@ -13,7 +13,7 @@ export class MailerService implements OnModuleInit {
 
   constructor() {
     const host = process.env.MAIL_HOST || 'smtp.gmail.com';
-    const port = Number(process.env.MAIL_PORT || 465);
+    const port = Number(process.env.MAIL_PORT || 587); 
     const user = process.env.MAIL_USER;
     const pass = process.env.MAIL_PASS;
     const secure = port === 465;
@@ -22,37 +22,39 @@ export class MailerService implements OnModuleInit {
       `Creating mail transporter host=${host} port=${port} secure=${secure}`,
     );
 
-    this.transporter = nodemailer.createTransport({
+    const transportOptions: nodemailer.TransportOptions = {
       host,
       port,
       secure,
-      auth: { user, pass },
+      auth: user && pass ? { user, pass } : undefined,
       tls: {
-        rejectUnauthorized: false,
+        rejectUnauthorized: process.env.MAIL_REJECT_UNAUTHORIZED === 'false' ? false : true,
       },
-      connectionTimeout: 10_000,
-      greetingTimeout: 10_000,
-      socketTimeout: 10_000,
-    });
+      connectionTimeout: 30000, 
+      greetingTimeout: 30000,
+      socketTimeout: 30000,
+      logger: process.env.MAIL_DEBUG === 'true',
+      debug: process.env.MAIL_DEBUG === 'true',
+    };
+    if (!user || !pass) {
+      this.logger.warn(
+        'No MAIL_USER or MAIL_PASS provided. SMTP auth will not be used. If you are using Gmail, consider using an App Password and set MAIL_USER/MAIL_PASS.',
+      );
+    }
+
+    this.transporter = nodemailer.createTransport(transportOptions);
   }
 
   async onModuleInit() {
-    this.logger.log(
-      'Skipping transporter verification in cloud environment to avoid timeout.',
-    );
-    if (process.env.NODE_ENV !== 'production') {
-      try {
-        const result = await this.transporter.verify();
-        this.logger.log(
-          'Mailer transporter verified: ' + JSON.stringify(result),
-        );
-      } catch (err: any) {
-        this.logger.error(
-          'Mailer transporter verification failed: ' +
-            (err && err.message ? err.message : err),
-        );
-        this.logger.debug(err && err.stack ? err.stack : err);
-      }
+    this.logger.log('Testing mail transporter connection...');
+    try {
+      const result = await this.transporter.verify();
+      this.logger.log('Mailer transporter verified: ' + JSON.stringify(result));
+    } catch (err: any) {
+      this.logger.error(
+        'Mailer transporter verification failed: ' + (err?.message || err),
+      );
+      this.logger.debug(err?.stack || err);
     }
   }
 
@@ -75,10 +77,8 @@ export class MailerService implements OnModuleInit {
       this.logger.log(`Mail sent: ${info.messageId}`);
       return { messageId: info.messageId, accepted: info.accepted };
     } catch (err: any) {
-      this.logger.error(
-        'Failed to send email: ' + (err && err.message ? err.message : err),
-      );
-      this.logger.debug(err && err.stack ? err.stack : err);
+      this.logger.error('Failed to send email: ' + (err?.message || err));
+      this.logger.debug(err?.stack || err);
       throw new InternalServerErrorException('Failed to send email.');
     }
   }
