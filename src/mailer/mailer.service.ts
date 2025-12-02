@@ -30,22 +30,29 @@ export class MailerService implements OnModuleInit {
       tls: {
         rejectUnauthorized: false,
       },
-      connectionTimeout: 10_000, 
+      connectionTimeout: 10_000,
       greetingTimeout: 10_000,
       socketTimeout: 10_000,
     });
   }
 
   async onModuleInit() {
-    try {
-      const result = await this.transporter.verify();
-      this.logger.log('Mailer transporter verified: ' + JSON.stringify(result));
-    } catch (err: any) {
-      this.logger.error(
-        'Mailer transporter verification failed: ' +
-          (err && err.message ? err.message : err),
-      );
-      this.logger.debug(err && err.stack ? err.stack : err);
+    this.logger.log(
+      'Skipping transporter verification in cloud environment to avoid timeout.',
+    );
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        const result = await this.transporter.verify();
+        this.logger.log(
+          'Mailer transporter verified: ' + JSON.stringify(result),
+        );
+      } catch (err: any) {
+        this.logger.error(
+          'Mailer transporter verification failed: ' +
+            (err && err.message ? err.message : err),
+        );
+        this.logger.debug(err && err.stack ? err.stack : err);
+      }
     }
   }
 
