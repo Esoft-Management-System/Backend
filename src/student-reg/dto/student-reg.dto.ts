@@ -23,6 +23,11 @@ export class StudentRegDto {
   dateOfBirth: Date;
 
   @ApiProperty({ example: '' })
+  @IsNotEmpty({ message: 'Please enter your NIC' })
+  @IsString()
+  nic: string;
+
+  @ApiProperty({ example: '' })
   @IsNotEmpty({ message: 'Please enter your email address' })
   @IsEmail({}, { message: 'Please enter a valid email address' })
   email: string;
