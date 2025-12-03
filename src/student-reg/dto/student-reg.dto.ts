@@ -3,7 +3,7 @@ import { IsEmail, IsNotEmpty, IsString, MinLength, IsDateString,}  from "class-v
 
 export class StudentRegDto {
   @ApiProperty({ example: '' })
-  @IsNotEmpty({ message: 'Please enter your student ID' })
+  @IsNotEmpty({ message: 'Please enter your E Number' })
   @IsString()
   eNumber: string;
 
@@ -20,10 +20,10 @@ export class StudentRegDto {
   @ApiProperty({ example: '' })
   @IsNotEmpty({ message: 'Please enter your date of birth' })
   @IsDateString({}, { message: 'Please enter a valid date (YYYY-MM-DD' })
-  dateOfBirth: string;
+  dateOfBirth: Date;
 
   @ApiProperty({ example: '' })
-  @IsNotEmpty({ message: 'Please enter your email' })
+  @IsNotEmpty({ message: 'Please enter your email address' })
   @IsEmail({}, { message: 'Please enter a valid email address' })
   email: string;
 
