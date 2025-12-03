@@ -42,7 +42,7 @@ export class CreateStudentRegDto {
   @ApiProperty({ example: '2002-01-01' })
   @IsNotEmpty({ message: 'Please enter your date of birth' })
   @IsDateString({}, { message: 'Please enter a valid date of birth' })
-  dateOfBirth: string;
+  dateOfBirth: Date;
 
   @ApiProperty({ example: '209 esoft trincomalee' })
   @IsNotEmpty({ message: 'Please enter your address' })
