@@ -14,7 +14,7 @@ export class StudentRegDto {
 
   @ApiProperty({ example: '' })
   @IsNotEmpty({ message: 'Please enter your contact number' })
-  @IsDateString()
+  @IsString()
   contactNumber: string;
 
   @ApiProperty({ example: '' })
