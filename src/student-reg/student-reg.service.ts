@@ -11,7 +11,7 @@ import {
 } from './dto/Schemas/student-reg.schema';
 import { Model } from 'mongoose';
 import { StudentRegDto } from './dto/student-reg.dto';
-import * as bcrypt from 'bcrypt';
+import { encryptPassword } from '../utilities/auth/bcrypt.util';
 
 @Injectable()
 export class StudentRegService {
@@ -41,7 +41,7 @@ export class StudentRegService {
     }
 
     try {
-      const hashedPassword = await bcrypt.hash(dto.password, 10);
+      const hashedPassword = await encryptPassword(dto.password);
 
       const student = new this.studentRegModel({
         eNumber: dto.eNumber,
