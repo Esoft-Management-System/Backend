@@ -11,12 +11,16 @@ import {
 } from './schemas/staff-request.schema';
 import { Model } from 'mongoose';
 import { CreateStaffRequestDto } from './dto/create-staff-request.dto';
+import { MailerService } from '../../mailer/mailer.service';
+import { generatePassword } from '../../users/users-password';
+import { encryptPassword } from '../../utilities/auth/bcrypt.util';
 
 @Injectable()
 export class StaffRequestService {
   constructor(
     @InjectModel(StaffRequest.name)
     private readonly StaffRequestModel: Model<StaffRequestDocument>,
+    private readonly mailer: MailerService,
   ) {}
 
   //================================= Create staff Request ====================================
@@ -35,6 +39,7 @@ export class StaffRequestService {
     try {
       const request = new this.StaffRequestModel({
         ...dot,
+        role: dot.role ?? 'staff',
         requestDate: new Date(),
         approved: false,
       });
@@ -55,14 +60,26 @@ export class StaffRequestService {
 
   //================================= Approve staff Request ====================================
   async approve(id: string): Promise<StaffRequest> {
-    const update = await this.StaffRequestModel.findByIdAndUpdate(
-      id,
-      { approved: true },
-      { new: true },
-    ).exec();
+    const request = await this.StaffRequestModel.findById(id).exec();
 
-    if (!update) {
+    if (!request) {
       throw new NotFoundException('Request not found');
+    }
+    const password = generatePassword(10);
+    const passwordHash = await encryptPassword(password);
+    request.approved = true;
+    request.passwordHash = passwordHash;
+    const update = await request.save();
+    try {
+      await this.mailer.sendMail({
+        to: update.email,
+        subject: 'Your access request has been approved',
+        text: `Hello ${update.fullName},\n\nYour ${update.role} access request has been approved.\n\nTemporary password: ${password}\nStaff ID: ${update.staffId}\n\nPlease sign in and change your password immediately.\n`,
+        html: `<p>Hello ${update.fullName},</p><p>Your ${update.role} access request has been approved.</p><p><strong>Temporary password:</strong> ${password}<br/><strong>Staff ID:</strong> ${update.staffId}</p><p>Please sign in and change your password immediately.</p>`,
+      });
+    } catch (err) {
+      console.error('Failed to send approval email', err);
+      // do not fail approval if email sending fails
     }
     return update;
   }

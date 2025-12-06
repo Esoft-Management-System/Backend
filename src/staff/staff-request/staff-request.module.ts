@@ -6,12 +6,14 @@ import {
   StaffRequest,
   StaffRequestSchema,
 } from './schemas/staff-request.schema';
+import { MailerModule } from '../../mailer/mailer.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: StaffRequest.name, schema: StaffRequestSchema },
     ]),
+    MailerModule,
   ],
   controllers: [StaffRequestController],
   providers: [StaffRequestService],
