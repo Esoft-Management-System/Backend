@@ -4,7 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import {
   StudentRegistration,
   StudentRegistrationSchema,
-} from './dto/Schemas/student-reg.schema';
+} from './Schemas/student-reg.schema';
 import { StudentRegController } from './student-register.controller';
 
 @Module({

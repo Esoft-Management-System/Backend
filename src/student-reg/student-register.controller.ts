@@ -19,7 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { StudentRegService } from './student-reg.service';
-import { StudentRegistration } from './dto/Schemas/student-reg.schema';
+import { StudentRegistration } from './Schemas/student-reg.schema';
 import { StudentRegDto } from './dto/student-reg.dto';
 
 @ApiTags('Student Registration')
