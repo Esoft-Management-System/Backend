@@ -23,6 +23,12 @@ export class StaffRequest {
   @Prop({ required: true })
   reason: string;
 
+  @Prop({ default: 'staff' })
+  role: 'staff' | 'admin';
+
+  @Prop()
+  passwordHash?: string;
+
   @Prop({ default: false })
   approved: boolean;
 }

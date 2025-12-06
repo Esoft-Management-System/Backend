@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, isString, IsString } from 'class-validator';
+import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateStaffRequestDto {
   @ApiProperty({ example: '' })
@@ -26,4 +26,10 @@ export class CreateStaffRequestDto {
   @IsNotEmpty({ message: 'Please enter the reason for the request' })
   @IsString()
   reason: string;
+
+  @ApiProperty({ example: 'staff', enum: ['staff', 'admin'], default: 'staff' })
+  @IsOptional()
+  @IsString()
+  @IsIn(['staff', 'admin'], { message: 'Role must be either staff or admin' })
+  role?: 'staff' | 'admin';
 }
