@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { StudentRegController } from './student-register.controller';
 import { StudentRegService } from './student-reg.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import {
   StudentRegistration,
   StudentRegistrationSchema,
 } from './dto/Schemas/student-reg.schema';
+import { StudentRegController } from './student-register.controller';
 
 @Module({
   imports: [

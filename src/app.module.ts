@@ -6,6 +6,7 @@ import { StaffRequestModule } from './staff-request/staff-request.module';
 import { AppController } from './app.controller';
 import { HealthController } from './health.controller';
 import { MailerModule } from './mailer/mailer.module';
+import { StudentRegModule } from './student-reg/student-registration.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { MailerModule } from './mailer/mailer.module';
     }),
     StaffRequestModule,
     MailerModule,
+    StudentRegModule
   ],
   controllers: [AppController, HealthController],
 })
