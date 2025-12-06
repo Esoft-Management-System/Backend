@@ -11,7 +11,7 @@ import {
 } from './Schemas/student-reg.schema';
 import { Model } from 'mongoose';
 import { StudentRegDto } from './dto/student-reg.dto';
-import { encryptPassword } from '../utilities/auth/bcrypt.util';
+import { encryptPassword } from 'src/utilities/auth/bcrypt.util';
 
 @Injectable()
 export class StudentRegService {
