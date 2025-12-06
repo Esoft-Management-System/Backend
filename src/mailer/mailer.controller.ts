@@ -24,9 +24,7 @@ export class MailerController {
 
   @Post('test')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Send a test email (use this to verify SMTP config)',
-  })
+  @ApiOperation({ summary: 'Send a test email (Brevo)' })
   @ApiResponse({ status: 200, description: 'Email sent' })
   @ApiBadRequestResponse({ description: 'Validation error' })
   @ApiInternalServerErrorResponse({ description: 'Sending failed' })

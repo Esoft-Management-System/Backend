@@ -74,12 +74,18 @@ export class StaffRequestService {
       await this.mailer.sendMail({
         to: update.email,
         subject: 'Your access request has been approved',
-        text: `Hello ${update.fullName},\n\nYour ${update.role} access request has been approved.\n\nTemporary password: ${password}\nStaff ID: ${update.staffId}\n\nPlease sign in and change your password immediately.\n`,
-        html: `<p>Hello ${update.fullName},</p><p>Your ${update.role} access request has been approved.</p><p><strong>Temporary password:</strong> ${password}<br/><strong>Staff ID:</strong> ${update.staffId}</p><p>Please sign in and change your password immediately.</p>`,
+        text: `Hello ${update.fullName},
+    
+    Your access request has been approved.
+    
+    Role: ${update.role}
+    Staff ID: ${update.staffId}
+    Password: ${password}
+    
+    Please change your password after first login.`,
       });
     } catch (err) {
       console.error('Failed to send approval email', err);
-      // do not fail approval if email sending fails
     }
     return update;
   }
