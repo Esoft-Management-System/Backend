@@ -16,6 +16,7 @@ import {
   ApiNotFoundResponse,
   ApiOperation,
   ApiResponse,
+  ApiBearerAuth,
   ApiTags,
 } from '@nestjs/swagger';
 import { StaffRequestService } from './staff-request.service';
@@ -65,7 +66,8 @@ export class StaffRequestController {
 
   //================================= Approve staff Request ====================================
   @Patch(':id/approve')
-  @ApiOperation({ summary: 'Approve a staff request' })
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Approve a staff request (admin only)' })
   @ApiResponse({
     status: 200,
     description: 'Request approved',
@@ -81,6 +83,7 @@ export class StaffRequestController {
   }
   //================================= Reject staff Request Controller ====================================
   @Patch(':id/reject')
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Reject a staff request' })
   @ApiResponse({
     status: 200,

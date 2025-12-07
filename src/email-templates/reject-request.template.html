@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Access Request Status</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #f3f4f6;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1f2933;
+    "
+  >
+    <table
+      width="100%"
+      border="0"
+      cellspacing="0"
+      cellpadding="0"
+      align="center"
+      bgcolor="#f3f4f6"
+      style="background-color: #f3f4f6; padding: 24px 0"
+    >
+      <tr>
+        <td align="center">
+          <table
+            width="640"
+            border="0"
+            cellspacing="0"
+            cellpadding="0"
+            style="
+              width: 640px;
+              max-width: 640px;
+              background: #ffffff;
+              border-radius: 14px;
+              overflow: hidden;
+              border: 1px solid #e5e7eb;
+              box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+            "
+          >
+            <tr>
+              <td
+                align="center"
+                style="
+                  background: #ef4444;
+                  padding: 32px 24px 28px;
+                  color: #ffffff;
+                "
+              >
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td align="center" style="padding-bottom: 18px">
+                      <table
+                        role="presentation"
+                        cellpadding="0"
+                        cellspacing="0"
+                        border="0"
+                        style="
+                          width: 72px;
+                          height: 72px;
+                          border-radius: 50%;
+                          background: rgba(255, 255, 255, 0.18);
+                        "
+                      >
+                        <tr>
+                          <td
+                            align="center"
+                            valign="middle"
+                            style="
+                              height: 72px;
+                              width: 72px;
+                              font-size: 32px;
+                              font-weight: 700;
+                              line-height: 72px;
+                              color: #ffffff;
+                            "
+                          >
+                            !
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center">
+                      <div
+                        style="
+                          font-size: 26px;
+                          font-weight: 700;
+                          letter-spacing: -0.3px;
+                          margin-bottom: 8px;
+                        "
+                      >
+                        Access Request Not Approved
+                      </div>
+                      <div
+                        style="font-size: 16px; opacity: 0.95; line-height: 1.4"
+                      >
+                        We reviewed your request and cannot grant access at this
+                        time
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 28px 28px 10px">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td
+                      style="
+                        font-size: 17px;
+                        line-height: 1.5;
+                        color: #111827;
+                        padding-bottom: 18px;
+                      "
+                    >
+                      Hello <strong>${fullName}</strong>,
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding-bottom: 16px">
+                      <div
+                        style="
+                          display: inline-block;
+                          padding: 10px 18px;
+                          background: rgba(239, 68, 68, 0.1);
+                          color: #b91c1c;
+                          border: 1px solid rgba(239, 68, 68, 0.35);
+                          border-radius: 9999px;
+                          font-weight: 700;
+                          font-size: 14px;
+                        "
+                      >
+                        Access Request Declined
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding-bottom: 10px">
+                      <table
+                        width="100%"
+                        border="0"
+                        cellspacing="0"
+                        cellpadding="0"
+                      >
+                        <tr>
+                          <td width="50%" style="padding: 0 8px 16px 0">
+                            <table
+                              width="100%"
+                              border="0"
+                              cellspacing="0"
+                              cellpadding="0"
+                              style="
+                                background: #f8fafc;
+                                border: 1px solid #e5e7eb;
+                                border-radius: 10px;
+                              "
+                            >
+                              <tr>
+                                <td
+                                  style="
+                                    padding: 14px 16px 6px;
+                                    font-size: 11px;
+                                    letter-spacing: 0.5px;
+                                    text-transform: uppercase;
+                                    color: #6b7280;
+                                    font-weight: 700;
+                                  "
+                                >
+                                  Staff ID
+                                </td>
+                              </tr>
+                              <tr>
+                                <td
+                                  style="
+                                    padding: 0 16px 14px;
+                                    font-size: 18px;
+                                    font-weight: 700;
+                                    color: #0f172a;
+                                  "
+                                >
+                                  ${staffId}
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                          <td width="50%" style="padding: 0 0 16px 8px">
+                            <table
+                              width="100%"
+                              border="0"
+                              cellspacing="0"
+                              cellpadding="0"
+                              style="
+                                background: #f8fafc;
+                                border: 1px solid #e5e7eb;
+                                border-radius: 10px;
+                              "
+                            >
+                              <tr>
+                                <td
+                                  style="
+                                    padding: 14px 16px 6px;
+                                    font-size: 11px;
+                                    letter-spacing: 0.5px;
+                                    text-transform: uppercase;
+                                    color: #6b7280;
+                                    font-weight: 700;
+                                  "
+                                >
+                                  Requested Role
+                                </td>
+                              </tr>
+                              <tr>
+                                <td
+                                  style="
+                                    padding: 0 16px 14px;
+                                    font-size: 18px;
+                                    font-weight: 700;
+                                    color: #0f172a;
+                                  "
+                                >
+                                  ${role}
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding: 4px 0 18px">
+                      <table
+                        width="100%"
+                        border="0"
+                        cellspacing="0"
+                        cellpadding="0"
+                        style="
+                          background: #f9fafb;
+                          border: 1px solid #e5e7eb;
+                          border-radius: 12px;
+                        "
+                      >
+                        <tr>
+                          <td
+                            style="
+                              padding: 16px 18px 10px;
+                              font-size: 12px;
+                              font-weight: 700;
+                              color: #4b5563;
+                              text-transform: uppercase;
+                            "
+                          >
+                            Why was it declined?
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 0 18px 18px">
+                            <div
+                              style="
+                                font-size: 14px;
+                                line-height: 1.6;
+                                color: #374151;
+                                background: #ffffff;
+                                border: 1px dashed #d1d5db;
+                                border-radius: 10px;
+                                padding: 14px;
+                              "
+                            >
+                              ${reason}
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 0 18px 16px">
+                            <div
+                              style="
+                                background: #fef2f2;
+                                border: 1px solid #fecdd3;
+                                border-radius: 10px;
+                                padding: 12px 14px;
+                                font-size: 13px;
+                                color: #9f1239;
+                                line-height: 1.5;
+                              "
+                            >
+                              If you believe this is an error or you have
+                              updated information, please reply to this email or
+                              contact support.
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding: 6px 0 14px">
+                      <div
+                        style="
+                          font-size: 16px;
+                          font-weight: 700;
+                          color: #0f172a;
+                          margin-bottom: 10px;
+                        "
+                      >
+                        Next steps
+                      </div>
+                      <ul
+                        style="
+                          margin: 0;
+                          padding-left: 18px;
+                          color: #4b5563;
+                          font-size: 14px;
+                          line-height: 1.6;
+                        "
+                      >
+                        <li>
+                          Review the reason above and provide any missing
+                          documents if applicable.
+                        </li>
+                        <li>
+                          If you need access urgently, contact your manager or
+                          IT support.
+                        </li>
+                        <li>
+                          You can resubmit a new request after addressing the
+                          noted items.
+                        </li>
+                      </ul>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td
+                align="center"
+                style="
+                  padding: 18px 24px 24px;
+                  background: #f8fafc;
+                  border-top: 1px solid #e5e7eb;
+                  font-size: 13px;
+                  color: #6b7280;
+                "
+              >
+                <div style="margin-bottom: 8px">
+                  If you have questions, contact the Support team.
+                </div>
+                <div style="color: #9ca3af">
+                  This is an automated message. Please do not reply. For support
+                  email
+                  <a
+                    href="mailto:trincoesoftproject@gmail.com"
+                    style="
+                      color: #3f51f7;
+                      text-decoration: none;
+                      font-weight: 600;
+                    "
+                    >trincoesoftproject@gmail.com</a
+                  >.
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

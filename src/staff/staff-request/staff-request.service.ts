@@ -4,6 +4,9 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { existsSync } from 'fs';
+import { readFile } from 'fs/promises';
+import * as path from 'path';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   StaffRequest,
@@ -22,6 +25,31 @@ export class StaffRequestService {
     private readonly StaffRequestModel: Model<StaffRequestDocument>,
     private readonly mailer: MailerService,
   ) {}
+
+  private resolveTemplatePath(fileName: string): string {
+    const distPath = path.join(
+      process.cwd(),
+      'dist',
+      'email-templates',
+      fileName,
+    );
+    if (existsSync(distPath)) return distPath;
+
+    return path.join(process.cwd(), 'src', 'email-templates', fileName);
+  }
+
+  private async renderTemplate(
+    fileName: string,
+    variables: Record<string, string>,
+  ): Promise<string> {
+    const templatePath = this.resolveTemplatePath(fileName);
+    const content = await readFile(templatePath, 'utf-8');
+
+    return Object.entries(variables).reduce((acc, [key, value]) => {
+      const pattern = new RegExp(`\\$\\{${key}\\}`, 'g');
+      return acc.replace(pattern, value ?? '');
+    }, content);
+  }
 
   //================================= Create staff Request ====================================
   async create(dot: CreateStaffRequestDto): Promise<StaffRequest> {
@@ -71,18 +99,20 @@ export class StaffRequestService {
     request.passwordHash = passwordHash;
     const update = await request.save();
     try {
+      const html = await this.renderTemplate(
+        'approve-request.template.html',
+        {
+          fullName: update.fullName,
+          role: update.role,
+          staffId: update.staffId,
+          password,
+        },
+      );
+
       await this.mailer.sendMail({
         to: update.email,
         subject: 'Your access request has been approved',
-        text: `Hello ${update.fullName},
-    
-    Your access request has been approved.
-    
-    Role: ${update.role}
-    Staff ID: ${update.staffId}
-    Password: ${password}
-    
-    Please change your password after first login.`,
+        html,
       });
     } catch (err) {
       console.error('Failed to send approval email', err);
@@ -91,16 +121,36 @@ export class StaffRequestService {
   }
 
   //================================= Delete staff Request ====================================
-  async rejectStaffRequest(id: string): Promise<StaffRequest> {
-    const update = await this.StaffRequestModel.findByIdAndUpdate(
-      id,
-      { approved: false },
-      { new: true },
-    ).exec();
+  async rejectStaffRequest(
+    id: string,
+    reason = 'Your request was not approved at this time.',
+  ): Promise<StaffRequest> {
+    const request = await this.StaffRequestModel.findById(id).exec();
 
-    if (!update) {
+    if (!request) {
       throw new NotFoundException('Request not found');
     }
+
+    request.approved = false;
+    const update = await request.save();
+
+    try {
+      const html = await this.renderTemplate('reject-request.template.html', {
+        fullName: update.fullName,
+        role: update.role,
+        staffId: update.staffId,
+        reason,
+      });
+
+      await this.mailer.sendMail({
+        to: update.email,
+        subject: 'Your access request was not approved',
+        html,
+      });
+    } catch (err) {
+      console.error('Failed to send rejection email', err);
+    }
+
     return update;
   }
 }
