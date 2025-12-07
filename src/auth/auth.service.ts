@@ -39,6 +39,7 @@ export class AuthService {
       fullName: user.fullName,
       email: user.email,
       role: user.role,
+      isPasswordTemporary: user.isTemporaryPassword,
     };
 
     const token = await this.jwtService.signAsync(payload, {
@@ -57,6 +58,7 @@ export class AuthService {
         fullname: user.fullName,
         email: user.email,
         role: user.role,
+        isPasswordTemporary: user.isTemporaryPassword,
       },
     };
   }
