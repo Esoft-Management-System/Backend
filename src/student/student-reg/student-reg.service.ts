@@ -4,6 +4,9 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { existsSync } from 'fs';
+import { readFile } from 'fs/promises';
+import * as path from 'path';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   StudentRegistration,
@@ -12,13 +15,40 @@ import {
 import { Model } from 'mongoose';
 import { StudentRegDto } from './dto/student-reg.dto';
 import { encryptPassword } from 'src/utilities/auth/bcrypt.util';
+import { MailerService } from '../../mailer/mailer.service';
 
 @Injectable()
 export class StudentRegService {
   constructor(
     @InjectModel(StudentRegistration.name)
     private readonly studentRegModel: Model<StudentRegistrationDocument>,
+    private readonly mailer: MailerService,
   ) {}
+
+  private resolveTemplatePath(fileName: string): string {
+    const distPath = path.join(
+      process.cwd(),
+      'dist',
+      'email-templates',
+      fileName,
+    );
+    if (existsSync(distPath)) return distPath;
+
+    return path.join(process.cwd(), 'src', 'email-templates', fileName);
+  }
+
+  private async renderTemplate(
+    fileName: string,
+    variables: Record<string, string>,
+  ): Promise<string> {
+    const templatePath = this.resolveTemplatePath(fileName);
+    const content = await readFile(templatePath, 'utf-8');
+
+    return Object.entries(variables).reduce((acc, [key, value]) => {
+      const pattern = new RegExp(`\\$\\{${key}\\}`, 'g');
+      return acc.replace(pattern, value ?? '');
+    }, content);
+  }
 
   //================================= Create Student Registration ====================================
   async create(dto: StudentRegDto): Promise<StudentRegistration> {
@@ -54,7 +84,29 @@ export class StudentRegService {
         password: hashedPassword,
       });
 
-      return await student.save();
+      const saved = await student.save();
+
+      try {
+        const html = await this.renderTemplate(
+          'student-registration-success.template.html',
+          {
+            fullName: saved.fullName,
+            eNumber: saved.eNumber,
+            emailAddress: saved.emailAddress,
+            contactNumber: saved.contactNumber,
+          },
+        );
+
+        await this.mailer.sendMail({
+          to: saved.emailAddress,
+          subject: 'Your student registration is confirmed',
+          html,
+        });
+      } catch (err) {
+        console.error('Failed to send student registration email', err);
+      }
+
+      return saved;
     } catch (err) {
       console.error(err);
       throw new InternalServerErrorException(

@@ -6,9 +6,11 @@ import {
   StudentRegistrationSchema,
 } from './Schemas/student-reg.schema';
 import { StudentRegController } from './student-register.controller';
+import { MailerModule } from '../../mailer/mailer.module';
 
 @Module({
   imports: [
+    MailerModule,
     MongooseModule.forFeature([
       { name: StudentRegistration.name, schema: StudentRegistrationSchema },
     ]),
