@@ -1,14 +1,25 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const server = app.getHttpAdapter().getInstance();
   server.get('/', (req, res) => res.send('Server is running'));
+
   app.enableCors();
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
+
+  // Global validation
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   // Swagger
   const config = new DocumentBuilder()
@@ -25,7 +36,6 @@ async function bootstrap() {
   SwaggerModule.setup(`${globalPrefix}/docs`, app, document);
 
   const port = Number(process.env.PORT) || 3000;
-  // listen on 0.0.0.0 so Render (and other hosts) can access the server externally
   await app.listen(port, '0.0.0.0');
 
   console.log(`Server running on port ${port}`);
