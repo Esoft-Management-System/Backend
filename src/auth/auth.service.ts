@@ -20,7 +20,7 @@ export class AuthService {
     const user = await this.userService.findByStaffId(dto.staffId);
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
-    if (user.role !== 'staff' && !user.approved) {
+    if (user.role === 'staff' && !user.approved) {
       throw new ForbiddenException('Staff request not approved yet');
     }
 
@@ -33,12 +33,27 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (user.isPasswordTemporary) {
+      const temporarySessionToken = await this.jwtService.signAsync(
+        {
+          sub: user._id.toString(),
+          purpose: 'temp-password',
+        },
+        {
+          secret: process.env.STAFF_JWT_SECRET,
+          expiresIn: '30m',
+        },
+      );
+      return { forcePasswordChange: true, temporarySessionToken };
+    }
+
     const payload: JwtPayload = {
       sub: user._id.toString(),
       staffId: user.staffId,
       fullName: user.fullName,
       email: user.email,
       role: user.role,
+      isPasswordTemporary: user.isPasswordTemporary,
     };
 
     const token = await this.jwtService.signAsync(payload, {
@@ -57,6 +72,7 @@ export class AuthService {
         fullname: user.fullName,
         email: user.email,
         role: user.role,
+        isPasswordTemporary: user.isPasswordTemporary,
       },
     };
   }

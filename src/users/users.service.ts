@@ -13,7 +13,28 @@ export class UserService {
     private readonly staffModel: Model<StaffRequestDocument>,
   ) {}
 
-  async findByStaffId(staffId: string) {
-    return this.staffModel.findOne({ staffId }).lean();
+  async findByStaffId(staffId: string, opts?: { lean?: boolean }) {
+    if (opts?.lean) {
+      return this.staffModel.findOne({ staffId }).lean();
+    }
+    return this.staffModel.findOne({ staffId });
+  }
+
+  async findById(id: string) {
+    return this.staffModel.findById(id);
+  }
+
+  async updatePasswordHash(id: string, passwordHash: string) {
+    return this.staffModel.findByIdAndUpdate(
+      id,
+      {
+        passwordHash,
+        isPasswordTemporary: false,
+        tempPasswordCodeHash: undefined,
+        tempPasswordCodeExpiresAt: undefined,
+        tempPasswordFailedAttempts: 0,
+      },
+      { new: true },
+    );
   }
 }

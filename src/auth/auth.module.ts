@@ -10,6 +10,7 @@ import {
   StaffRequestSchema,
 } from '../staff/staff-request/schemas/staff-request.schema';
 import { UserService } from 'src/users/users.service';
+import { TempPasswordModule } from './temporary-password/temporary-password.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { UserService } from 'src/users/users.service';
     MongooseModule.forFeature([
       { name: StaffRequest.name, schema: StaffRequestSchema },
     ]),
+    TempPasswordModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, UserService],

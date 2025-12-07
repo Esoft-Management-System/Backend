@@ -31,6 +31,18 @@ export class StaffRequest {
 
   @Prop({ default: false })
   approved: boolean;
+
+  @Prop({ default: false })
+  isPasswordTemporary?: boolean;
+
+  @Prop()
+  tempPasswordCodeHash?: string;
+
+  @Prop()
+  tempPasswordCodeExpiresAt?: Date;
+
+  @Prop({ default: 0 })
+  tempPasswordFailedAttempts?: number;
 }
 
 export const StaffRequestSchema = SchemaFactory.createForClass(StaffRequest);

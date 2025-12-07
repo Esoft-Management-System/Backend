@@ -4,4 +4,5 @@ export interface JwtPayload {
   fullName: string;
   email: string;
   role: 'staff' | 'admin';
+  isPasswordTemporary?: boolean;
 }

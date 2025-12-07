@@ -11,17 +11,29 @@ export class AuthController {
   @Post('login')
   @ApiOperation({ summary: 'Staff/Admin login with staffId + password' })
   @ApiOkResponse({
+    description: 'Successful login or temporary-password flow trigger',
     schema: {
-      example: {
-        tokenType: 'staffToken',
-        token: '<jwt>',
-        staff: {
-          staffId: 'STF001',
-          fullName: 'Jane Doe',
-          email: 'jane@example.com',
-          role: 'staff',
+      oneOf: [
+        {
+          example: {
+            tokenType: 'staffToken',
+            token: '<jwt>',
+            staff: {
+              staffId: 'STF001',
+              fullName: 'Jane Doe',
+              email: 'jane@example.com',
+              role: 'staff',
+              isPasswordTemporary: false,
+            },
+          },
         },
-      },
+        {
+          example: {
+            forcePasswordChange: true,
+            temporarySessionToken: '<jwt>',
+          },
+        },
+      ],
     },
   })
   login(@Body() dto: loginDto) {
