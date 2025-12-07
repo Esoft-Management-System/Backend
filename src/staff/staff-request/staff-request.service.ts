@@ -97,7 +97,7 @@ export class StaffRequestService {
     const passwordHash = await encryptPassword(password);
     request.approved = true;
     request.passwordHash = passwordHash;
-    request.isTemporaryPassword = true;
+    request.isPasswordTemporary = true;
     const update = await request.save();
     try {
       const html = await this.renderTemplate(
