@@ -8,6 +8,7 @@ import { UserService } from 'src/users/users.service';
 import { loginDto } from './dto/login.dto';
 import { decryptPassword } from 'src/utilities/auth/bcrypt.util';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { rememberme } from './rememberMe';
 
 @Injectable()
 export class AuthService {
@@ -56,17 +57,22 @@ export class AuthService {
       isPasswordTemporary: user.isPasswordTemporary,
     };
 
-    const token = await this.jwtService.signAsync(payload, {
-      secret:
-        user.role === 'admin'
-          ? process.env.ADMIN_JWT_SECRET
-          : process.env.STAFF_JWT_SECRET,
-      expiresIn: '1d',
-    });
+    const secret = 
+      user.role === 'admin'
+          ? process.env.ADMIN_JWT_SECRET || 'admin-secret'
+          : process.env.STAFF_JWT_SECRET || 'staff-secret';
+
+    const {token, expiresIn} = await rememberme(
+      this.jwtService,
+      payload,
+      secret,
+      dto.rememberMe, 
+    );
 
     return {
       tokenType: user.role === 'admin' ? 'adminToken' : 'staffToken',
       token,
+      expiresIn,
       staff: {
         staffId: user.staffId,
         fullname: user.fullName,
