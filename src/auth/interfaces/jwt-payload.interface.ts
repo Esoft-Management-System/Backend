@@ -6,3 +6,11 @@ export interface JwtPayload {
   role: 'staff' | 'admin';
   isPasswordTemporary?: boolean;
 }
+
+export interface StudentJWTPayload {
+  sub: string; // MongoDB ObjectID as string
+  eNumber: string;
+  fullName: string;
+  email: string;
+  role: 'student';
+}

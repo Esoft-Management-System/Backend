@@ -11,7 +11,9 @@ import { TempPasswordService } from './temporary-password.service';
   imports: [
     JwtModule.register({}), // reuse global config or inject secrets via env
     MailerModule,
-    MongooseModule.forFeature([{ name: StaffRequest.name, schema: StaffRequestSchema }]),
+    MongooseModule.forFeature([
+      { name: StaffRequest.name, schema: StaffRequestSchema },
+    ]),
   ],
   controllers: [TempPasswordController],
   providers: [TempPasswordService, UserService],

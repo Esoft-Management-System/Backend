@@ -11,6 +11,9 @@ import {
 } from '../staff/staff-request/schemas/staff-request.schema';
 import { UserService } from 'src/users/users.service';
 import { TempPasswordModule } from './temporary-password/temporary-password.module';
+import { StudentRegistration, StudentRegistrationSchema } from 'src/student/student-reg/Schemas/student-reg.schema';
+import { StudentJWTStrategy } from './strategies/student-jwt.strategy';
+import { StudentServices } from 'src/users/student.service';
 
 @Module({
   imports: [
@@ -18,11 +21,12 @@ import { TempPasswordModule } from './temporary-password/temporary-password.modu
     JwtModule.register({}),
     MongooseModule.forFeature([
       { name: StaffRequest.name, schema: StaffRequestSchema },
+      { name: StudentRegistration.name, schema: StudentRegistrationSchema}
     ]),
     TempPasswordModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, UserService],
+  providers: [AuthService, JwtStrategy, StudentJWTStrategy, UserService , StudentServices],
   exports: [AuthService],
 })
 export class AuthModule {}

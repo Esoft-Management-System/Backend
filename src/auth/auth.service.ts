@@ -7,12 +7,15 @@ import { JwtService } from '@nestjs/jwt';
 import { UserService } from 'src/users/users.service';
 import { loginDto } from './dto/login.dto';
 import { decryptPassword } from 'src/utilities/auth/bcrypt.util';
-import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { JwtPayload, StudentJWTPayload } from './interfaces/jwt-payload.interface';
+import { StudentLoginDto } from './dto/student-login.dto';
+import { StudentServices } from 'src/users/student.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userService: UserService,
+    private readonly studentService: StudentServices,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -75,5 +78,49 @@ export class AuthService {
         isPasswordTemporary: user.isPasswordTemporary,
       },
     };
+  }
+
+
+  //=================================== Student Login ===================================
+  async studentLogin(dto: StudentLoginDto){
+    const student = await this.studentService.findByENumber(dto.eNumber);
+
+    if(!student) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const passwordOk = await decryptPassword(dto.password, student.password);
+    if (!passwordOk) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const payload: StudentJWTPayload = {
+      sub: student._id.toString(),
+      eNumber: student.eNumber,
+      fullName: student.fullName,
+      email: student.emailAddress,
+      role: 'student',
+    }
+
+    const token = await this.jwtService.signAsync(payload,{
+      secret: process.env.STUDENT_JWT_SECRET_KEY,
+      expiresIn: '1d',
+    })
+
+    return {
+      tokenType: 'studentToken',
+      token,
+      student: {
+        _id: student._id,
+        eNumber: student.eNumber,
+        fullName: student.fullName,
+        email: student.emailAddress,
+        contactNumber: student.contactNumber,
+        dateOfBirth: student.dateOfBirth,
+        nic: student.nic,
+        address: student.address,
+        role: 'student',
+      }
+    }
   }
 }
