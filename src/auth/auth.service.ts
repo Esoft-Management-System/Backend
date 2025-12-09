@@ -104,14 +104,17 @@ export class AuthService {
       role: 'student',
     }
 
-    const token = await this.jwtService.signAsync(payload,{
-      secret: process.env.STUDENT_JWT_SECRET_KEY,
-      expiresIn: '1d',
-    })
+    const {token, expiresIn} = await rememberme(
+      this.jwtService,
+      payload,
+      process.env.STUDENT_JWT_SECRET || 'student-secret',
+      dto.rememberMe
+    );
 
     return {
       tokenType: 'studentToken',
       token,
+      expiresIn,
       student: {
         _id: student._id,
         eNumber: student.eNumber,
