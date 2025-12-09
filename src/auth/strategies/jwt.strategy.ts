@@ -14,11 +14,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           const payload = JSON.parse(
             Buffer.from(rawJwt.split('.')[1], 'base64').toString('utf8'),
           ) as JwtPayload;
-          const key =
-            payload.role === 'admin'
-              ? process.env.ADMIN_JWT_SECRET
-              : process.env.STAFF_JWT_SECRET;
+
+          let key: any;
+          switch (payload.role) {
+            case 'admin':
+              key = process.env.ADMIN_JWT_SECRET;
+              break;
+            case 'staff':
+              key = process.env.STAFF_JWT_SECRET;
+              break;
+            default:
+              throw new Error('Invalid role for staff/admin JWT strategy');
+          }
           done(null, key);
+          
         } catch (err) {
           done(err, null as any);
         }

@@ -13,6 +13,7 @@ export class UserService {
     private readonly staffModel: Model<StaffRequestDocument>,
   ) {}
 
+  //staff
   async findByStaffId(staffId: string, opts?: { lean?: boolean }) {
     if (opts?.lean) {
       return this.staffModel.findOne({ staffId }).lean();
