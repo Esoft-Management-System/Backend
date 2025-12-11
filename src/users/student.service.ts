@@ -13,7 +13,7 @@ export class StudentServices {
     private readonly staffModel: Model<StudentRegistrationDocument>,
     @InjectModel(StudentRegistration.name)
     private readonly studentModel: Model<StudentRegistrationDocument>,
-  ) {}
+  ) { }
 
   //==================================== Student ===================================
   async findByENumber(eNumber: string, opts?: { lean?: boolean }) {
@@ -22,6 +22,10 @@ export class StudentServices {
     }
 
     return this.studentModel.findOne({ eNumber });
+  }
+
+  async findByEmail(email: string) {
+    return this.studentModel.findOne({ emailAddress: email });
   }
 
   async findStudentById(id: string) {
