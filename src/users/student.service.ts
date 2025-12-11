@@ -39,4 +39,11 @@ export class StudentServices {
       },
     );
   }
+
+  async findByEmail(email: string, opts?: { lean?: boolean }) {
+    if (opts?.lean) {
+      return this.studentModel.findOne({ emailAddress: email }).lean();
+    }
+    return this.studentModel.findOne({ emailAddress: email });
+  }
 }

@@ -28,6 +28,18 @@ export class StudentRegistration {
 
   @Prop({ required: true })
   password: string;
+
+  @Prop({ default: undefined })
+  forgotPasswordCodeHash?: string;
+
+  @Prop({ default: undefined })
+  forgotPasswordCodeExpiresAt?: Date;
+
+  @Prop({ default: 0 })
+  forgotPasswordFailedAttempts?: number;
+
+
+  
 }
 export const StudentRegistrationSchema =
   SchemaFactory.createForClass(StudentRegistration);

@@ -38,4 +38,11 @@ export class UserService {
       { new: true },
     );
   }
+
+  async findByEmail(email: string, opts?: { lean?: boolean }) {
+    if (opts?.lean) {
+      return this.staffModel.findOne({ email }).lean();
+    }
+    return this.staffModel.findOne({ email });
+  }
 }
