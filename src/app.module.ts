@@ -15,6 +15,7 @@ import { AdminAuthMiddleware } from './common/middlewares/admin-auth.middleware'
 import { MailerModule } from './mailer/mailer.module';
 import { StaffRequestModule } from './staff/staff-request/staff-request.module';
 import { StudentRegModule } from './student/student-reg/student-registration.module';
+import { ForgotPasswordModule } from './auth/forgot-password/forgot-password.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { StudentRegModule } from './student/student-reg/student-registration.mod
     StaffRequestModule,
     MailerModule,
     StudentRegModule,
+    ForgotPasswordModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AdminAuthMiddleware],

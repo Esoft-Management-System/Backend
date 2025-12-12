@@ -21,6 +21,10 @@ export class UserService {
     return this.staffModel.findOne({ staffId });
   }
 
+  async findByEmail(email: string) {
+    return this.staffModel.findOne({ email });
+  }
+
   async findById(id: string) {
     return this.staffModel.findById(id);
   }

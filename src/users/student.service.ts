@@ -24,6 +24,10 @@ export class StudentServices {
     return this.studentModel.findOne({ eNumber });
   }
 
+  async findByEmail(email: string) {
+    return this.studentModel.findOne({ emailAddress: email });
+  }
+
   async findStudentById(id: string) {
     return this.studentModel.findById(id);
   }
