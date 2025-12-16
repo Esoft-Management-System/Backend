@@ -48,7 +48,12 @@ export class AuthService {
           expiresIn: '30m',
         },
       );
-      return { isPasswordTemporary: true, forcePasswordChange: true, temporarySessionToken };
+      return {
+        isPasswordTemporary: true,
+        forcePasswordChange: true,
+        temporarySessionToken,
+        email: user.email,
+      };
     }
 
     const payload: JwtPayload = {
