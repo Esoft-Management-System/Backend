@@ -1,360 +1,279 @@
 import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-  Logger,
+	BadRequestException,
+	Injectable,
+	Logger,
+	NotFoundException,
+	UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { MailerService } from 'src/mailer/mailer.service';
 import { UserService } from 'src/users/users.service';
 import { StudentServices } from 'src/users/student.service';
-import {
-  decryptPassword,
-  encryptPassword,
-} from 'src/utilities/auth/bcrypt.util';
+import { RequestForgotPasswordDto } from './dto/request-forgot-password.dto';
+import { ResendForgotPasswordDto } from './dto/resend-forgot-password.dto';
+import { VerifyForgotPasswordDto } from './dto/verify-forgot.password.dto';
+import { SetNewForgotPasswordDto } from './dto/set-new-forgot-password.dto';
+import { decryptPassword, encryptPassword } from 'src/utilities/auth/bcrypt.util';
 import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import * as path from 'path';
-import { RequestForgotPasswordDto } from './dto/request-forgot-password.dto';
-import { VerifyForgotPasswordDto } from './dto/verify-forgot.password.dto';
-import {SetNewForgotPasswordDto } from './dto/set-new-forgot-password.dto';
 
-interface UserData {
-  _id: string;
-  email: string;
-  fullName: string;
-  forgotPasswordCodeHash?: string;
-  forgotPasswordCodeExpiresAt?: Date;
-  forgotPasswordFailedAttempts?: number;
-  role: 'student' | 'staff' | 'admin';
-  save(): Promise<void>;
-}
+type Role = 'student' | 'staff';
 
 @Injectable()
 export class ForgotPasswordService {
-  private readonly codeExpiryMinutes = 10;
-  private readonly logger = new Logger(ForgotPasswordService.name);
+	private readonly logger = new Logger(ForgotPasswordService.name);
+	private readonly expiryMinutes = 10;
+	private readonly maxAttempts = 5;
 
-  constructor(
-    private readonly jwt: JwtService,
-    private readonly mailer: MailerService,
-    private readonly userService: UserService,
-    private readonly studentService: StudentServices,
-  ) {}
+	constructor(
+		private readonly jwt: JwtService,
+		private readonly mailer: MailerService,
+		private readonly userService: UserService,
+		private readonly studentService: StudentServices,
+	) {}
 
-  //STEP 1: Request verification code
-  async requestForgotPasswordCode(dto: RequestForgotPasswordDto) {
-    // Auto-identify user type
-    const { user: userWrapper, foundUser, userType } = await this.identifyUser(dto.email);
+	async requestCode(dto: RequestForgotPasswordDto) {
+		const { userDoc, role } = await this.findUserByEmail(dto.email, dto.role);
+		const code = this.generateCode();
 
-    // Generate 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+		userDoc.forgotPasswordCodeHash = await encryptPassword(code);
+		userDoc.forgotPasswordCodeExpiresAt = new Date(
+			Date.now() + this.expiryMinutes * 60 * 1000,
+		);
+		userDoc.forgotPasswordFailedAttempts = 0;
+		await userDoc.save();
 
-    // Hash and store code with 10 min expiry
-    foundUser.forgotPasswordCodeHash = await encryptPassword(code);
-    foundUser.forgotPasswordCodeExpiresAt = new Date(
-      Date.now() + this.codeExpiryMinutes * 60 * 1000,
-    );
-    foundUser.forgotPasswordFailedAttempts = 0;
-    await foundUser.save();
+		const sessionToken = await this.signSessionToken(userDoc.id, role);
+		await this.sendCodeEmail(userDoc, code, role);
 
-    // Render email template
-    const html = await this.renderTemplate('verification-code.template.html', {
-      fullName: foundUser.fullName,
-      code,
-      expiresIn: `${this.codeExpiryMinutes} minutes`,
-      supportEmail: 'support@esoft.com',
-      year: `${new Date().getFullYear()}`,
-    });
+		return {
+			message: 'Verification code sent to your email',
+			forgotSessionToken: sessionToken,
+			expiresInSeconds: this.expiryMinutes * 60,
+		};
+	}
 
-    // Send email
-    try {
-      await this.mailer.sendMail({
-        to: foundUser.emailAddress || foundUser.email,
-        subject: 'Password Reset Verification Code',
-        html,
-      });
-    } catch (emailError) {
-      this.logger.error('Email sending failed, but code was saved', emailError);
-      // Continue anyway - code is saved in database
-    }
+	async resendCode(dto: ResendForgotPasswordDto) {
+		const payload = this.verifySessionToken(dto.forgotSessionToken);
+		const { userDoc } = await this.findUserById(payload.sub, payload.role as Role);
+		const code = this.generateCode();
 
-    // Create verification JWT token (15 min validity)
-    const verificationToken = await this.jwt.signAsync(
-      {
-        sub: foundUser._id.toString(),
-        userType,
-        role: userType === 'student' ? 'student' : foundUser.role,
-        purpose: 'forgot-password-verification',
-      },
-      {
-        secret: this.getJwtSecret(userType, userType === 'student' ? 'student' : foundUser.role),
-        expiresIn: '15m',
-      },
-    );
+		userDoc.forgotPasswordCodeHash = await encryptPassword(code);
+		userDoc.forgotPasswordCodeExpiresAt = new Date(
+			Date.now() + this.expiryMinutes * 60 * 1000,
+		);
+		userDoc.forgotPasswordFailedAttempts = 0;
+		await userDoc.save();
 
-    this.logger.log(`Code sent to ${userType}: ${foundUser.emailAddress || foundUser.email}`);
+		await this.sendCodeEmail(userDoc, code, payload.role as Role);
 
-    return {
-      message: 'Verification code sent to your email',
-      verificationToken,
-      expiresInSeconds: this.codeExpiryMinutes * 60,
-    };
-  }
+		return {
+			message: 'Verification code resent to your email',
+			expiresInSeconds: this.expiryMinutes * 60,
+		};
+	}
 
-  //STEP 2: Verify 6-digit code
+	async verifyCode(dto: VerifyForgotPasswordDto) {
+		const payload = this.verifySessionToken(dto.forgotSessionToken);
+		const { userDoc } = await this.findUserById(payload.sub, payload.role as Role);
+		await this.assertCodeValid(userDoc, dto.verificationCode);
 
-  async verifyForgotPasswordCode(dto: VerifyForgotPasswordDto) {
-    // Validate JWT verification token
-    let payload;
-    try {
-      const decodedPayload = this.jwt.decode(dto.verificationToken) as any;
-      if (!decodedPayload) throw new Error('Invalid token');
+		const resetToken = await this.signResetToken(userDoc.id, payload.role as Role);
+		return { message: 'Code verified successfully', resetToken };
+	}
 
-      const secret = this.getJwtSecret(
-        decodedPayload.userType,
-        decodedPayload.role,
-      );
+	async resetPassword(dto: SetNewForgotPasswordDto) {
+		if (dto.newPassword !== dto.confirmNewPassword) {
+			throw new BadRequestException('Passwords do not match');
+		}
 
-      payload = this.jwt.verify(dto.verificationToken, { secret });
-    } catch {
-      throw new UnauthorizedException('Invalid or expired verification token');
-    }
+		const payload = this.verifyResetToken(dto.resetToken);
+		const { userDoc, role } = await this.findUserById(
+			payload.sub,
+			payload.role as Role,
+		);
 
-    // Find user (student or staff)
-    let foundUser;
-    if (payload.userType === 'student') {
-      foundUser = await this.studentService.findStudentById(payload.sub);
-    } else {
-      foundUser = await this.userService.findById(payload.sub);
-    }
+		const hashed = await encryptPassword(dto.newPassword);
+		if (role === 'student') {
+			await this.studentService.updateStudentPasswordHash(userDoc.id, hashed);
+		} else {
+			await this.userService.updatePasswordHash(userDoc.id, hashed);
+		}
 
-    if (!foundUser) {
-      throw new BadRequestException('User not found');
-    }
+		userDoc.forgotPasswordCodeHash = undefined;
+		userDoc.forgotPasswordCodeExpiresAt = undefined;
+		userDoc.forgotPasswordFailedAttempts = 0;
+		await userDoc.save();
 
-    const userData: any = foundUser.toObject ? foundUser.toObject() : foundUser;
-    const user: UserData = {
-      ...userData,
-      email: userData.email || userData.emailAddress,
-      role: payload.userType === 'student' ? 'student' : userData.role,
-      save: () => foundUser.save(),
-    } as UserData;
+		await this.sendPasswordChangedEmail(userDoc, role);
 
-    // Validate code exists and hasn't expired
-    if (!user.forgotPasswordCodeHash || !user.forgotPasswordCodeExpiresAt) {
-      throw new BadRequestException('No verification code found');
-    }
+		return { message: 'Password reset successfully' };
+	}
 
-    if (user.forgotPasswordCodeExpiresAt.getTime() < Date.now()) {
-      throw new BadRequestException('Verification code has expired');
-    }
+	// ========================= helpers =========================
 
-    // Check max failed attempts (3)
-    if ((user.forgotPasswordFailedAttempts || 0) >= 3) {
-      throw new BadRequestException(
-        'Too many failed attempts. Request new code.',
-      );
-    }
+	private async findUserByEmail(email: string, role: Role) {
+		const normalizedRole: Role = role === 'student' ? 'student' : 'staff';
+		const userDoc =
+			normalizedRole === 'student'
+				? await this.studentService.findByEmail(email)
+				: await this.userService.findByEmail(email);
 
-    // Verify entered code matches hashed code
-    const isCodeValid = await decryptPassword(
-      dto.verificationCode,
-      user.forgotPasswordCodeHash,
-    );
+		if (!userDoc) {
+			throw new NotFoundException('Account not found');
+		}
 
-    if (!isCodeValid) {
-      user.forgotPasswordFailedAttempts =
-        (user.forgotPasswordFailedAttempts || 0) + 1;
-      await user.save();
-      throw new BadRequestException('Invalid verification code');
-    }
+		return { userDoc, role: normalizedRole };
+	}
 
-    // Code valid → Create reset token (15 min validity)
-    const resetToken = await this.jwt.signAsync(
-      {
-        sub: user._id.toString(),
-        userType: payload.userType,
-        role: user.role,
-        purpose: 'forgot-password-reset',
-      },
-      {
-        secret: this.getJwtSecret(payload.userType, user.role),
-        expiresIn: '15m',
-      },
-    );
+	private async findUserById(id: string, role: Role) {
+		const normalizedRole: Role = role === 'student' ? 'student' : 'staff';
+		const userDoc =
+			normalizedRole === 'student'
+				? await this.studentService.findStudentById(id)
+				: await this.userService.findById(id);
 
-    this.logger.log(`Code verified for ${payload.userType}`);
+		if (!userDoc) {
+			throw new NotFoundException('Account not found');
+		}
 
-    return {
-      message: 'Code verified successfully',
-      resetToken,
-    };
-  }
+		return { userDoc, role: normalizedRole };
+	}
 
-  // STEP 3: Set new password
-  async setNewPassword(dto: SetNewForgotPasswordDto) {
-    // Validate passwords match
-    if (dto.newPassword !== dto.confirmNewPassword) {
-      throw new BadRequestException('Passwords do not match');
-    }
+	private async assertCodeValid(user: any, code: string) {
+		if (!user.forgotPasswordCodeHash || !user.forgotPasswordCodeExpiresAt) {
+			throw new BadRequestException('No verification code found');
+		}
 
-    // Validate reset JWT token
-    let payload;
-    try {
-      const decodedPayload = this.jwt.decode(dto.resetToken) as any;
-      if (!decodedPayload) throw new Error('Invalid token');
+		if (user.forgotPasswordCodeExpiresAt.getTime() < Date.now()) {
+			throw new BadRequestException('Verification code expired');
+		}
 
-      const secret = this.getJwtSecret(
-        decodedPayload.userType,
-        decodedPayload.role,
-      );
+		if ((user.forgotPasswordFailedAttempts ?? 0) >= this.maxAttempts) {
+			throw new BadRequestException('Too many attempts. Please resend code.');
+		}
 
-      payload = this.jwt.verify(dto.resetToken, { secret });
-    } catch {
-      throw new UnauthorizedException('Invalid or expired reset token');
-    }
+		const isValid = await decryptPassword(code, user.forgotPasswordCodeHash);
+		if (!isValid) {
+			user.forgotPasswordFailedAttempts =
+				(user.forgotPasswordFailedAttempts ?? 0) + 1;
+			await user.save();
+			throw new BadRequestException('Invalid verification code');
+		}
 
-    // Find user
-    let foundUser;
-    if (payload.userType === 'student') {
-      foundUser = await this.studentService.findStudentById(payload.sub);
-    } else {
-      foundUser = await this.userService.findById(payload.sub);
-    }
+		// reset attempts on success
+		user.forgotPasswordFailedAttempts = 0;
+		await user.save();
+	}
 
-    if (!foundUser) {
-      throw new BadRequestException('User not found');
-    }
+	private generateCode(): string {
+		return Math.floor(100000 + Math.random() * 900000).toString();
+	}
 
-    const userData: any = foundUser.toObject ? foundUser.toObject() : foundUser;
-    const user: UserData = {
-      ...userData,
-      email: userData.email || userData.emailAddress,
-      role: payload.userType === 'student' ? 'student' : userData.role,
-      save: () => foundUser.save(),
-    } as UserData;
+	private getUserEmail(user: any): string {
+		return user.emailAddress || user.email;
+	}
 
-    // Hash new password
-    const hashedPassword = await encryptPassword(dto.newPassword);
+	private getJwtSecret(role: Role): string {
+		if (role === 'student') return process.env.STUDENT_JWT_SECRET_KEY || 'student-secret';
+		return process.env.STAFF_JWT_SECRET || 'staff-secret';
+	}
 
-    // Update password
-    if (payload.userType === 'student') {
-      await this.studentService.updateStudentPasswordHash(
-        payload.sub,
-        hashedPassword,
-      );
-    } else {
-      await this.userService.updatePasswordHash(payload.sub, hashedPassword);
-    }
+	private async signSessionToken(userId: string, role: Role) {
+		return this.jwt.signAsync(
+			{ sub: userId, role, purpose: 'forgot-password-session' },
+			{ secret: this.getJwtSecret(role), expiresIn: '15m' },
+		);
+	}
 
-    // Clear temporary fields
-    user.forgotPasswordCodeHash = undefined;
-    user.forgotPasswordCodeExpiresAt = undefined;
-    user.forgotPasswordFailedAttempts = 0;
-    await user.save();
+	private async signResetToken(userId: string, role: Role) {
+		return this.jwt.signAsync(
+			{ sub: userId, role, purpose: 'forgot-password-reset' },
+			{ secret: this.getJwtSecret(role), expiresIn: '15m' },
+		);
+	}
 
-    // Send confirmation email
-    const html = await this.renderTemplate('password-changed.template.html', {
-      fullName: user.fullName,
-      staffId: (user as any).staffId || (user as any).eNumber || '',
-      loginUrl: `${process.env.APP_URL ?? ''}`,
-      supportEmail: 'support@esoft.com',
-      Year: `${new Date().getFullYear()}`,
-    });
+	private verifySessionToken(token: string) {
+		try {
+			const decoded: any = this.jwt.decode(token);
+			if (!decoded?.role) throw new Error('bad token');
+			const secret = this.getJwtSecret(decoded.role as Role);
+			const payload = this.jwt.verify(token, { secret });
+			if (payload.purpose !== 'forgot-password-session') throw new Error('bad purpose');
+			return payload as { sub: string; role: Role };
+		} catch {
+			throw new UnauthorizedException('Invalid or expired session token');
+		}
+	}
 
-    try {
-      await this.mailer.sendMail({
-        to: user.email,
-        subject: 'Password Changed Successfully',
-        html,
-      });
-    } catch (emailError) {
-      this.logger.error('Confirmation email sending failed', emailError);
-      // Continue anyway - password was already updated
-    }
+	private verifyResetToken(token: string) {
+		try {
+			const decoded: any = this.jwt.decode(token);
+			if (!decoded?.role) throw new Error('bad token');
+			const secret = this.getJwtSecret(decoded.role as Role);
+			const payload = this.jwt.verify(token, { secret });
+			if (payload.purpose !== 'forgot-password-reset') throw new Error('bad purpose');
+			return payload as { sub: string; role: Role };
+		} catch {
+			throw new UnauthorizedException('Invalid or expired reset token');
+		}
+	}
 
-    this.logger.log(`Password reset completed for ${payload.userType}`);
+	private resolveTemplatePath(fileName: string): string {
+		const distPath = path.join(process.cwd(), 'dist', 'email-templates', fileName);
+		if (existsSync(distPath)) return distPath;
+		return path.join(process.cwd(), 'src', 'email-templates', fileName);
+	}
 
-    return {
-      message:
-        'Password reset successfully. Please log in with your new password.',
-    };
-  }
+	private async renderTemplate(fileName: string, variables: Record<string, string>): Promise<string> {
+		const templatePath = this.resolveTemplatePath(fileName);
+		const content = await readFile(templatePath, 'utf-8');
+		return Object.entries(variables).reduce((acc, [key, value]) => {
+			const pattern = new RegExp(`\\$\\{${key}\\}`, 'g');
+			return acc.replace(pattern, value ?? '');
+		}, content);
+	}
 
-  // ============ HELPER METHODS ============
-  private async identifyUser(identifier: string): Promise<{
-    user: UserData;
-    foundUser: any;
-    userType: 'student' | 'staff';
-  }> {
-    // ✅ Try find as Student by EMAIL
-    let foundUser: any = await this.studentService.findByEmail(identifier);
-    let userType: 'student' | 'staff' = 'student';
+	private async sendCodeEmail(user: any, code: string, role: Role) {
+		const html = await this.renderTemplate('verification-code.template.html', {
+			fullName: user.fullName ?? '',
+			code,
+			expiresIn: `${this.expiryMinutes} minutes`,
+			supportEmail: 'support@esoft.com',
+			year: `${new Date().getFullYear()}`,
+		});
+		await this.safeSendEmail(this.getUserEmail(user), 'Password Reset Code', html);
+	}
 
-    // ✅ If not found, try find as Staff by EMAIL
-    if (!foundUser) {
-      foundUser = await this.userService.findByEmail(identifier);
-      userType = 'staff';
-    }
+	private async sendPasswordChangedEmail(user: any, role: Role) {
+		const html = await this.renderTemplate('password-changed.template.html', {
+			fullName: user.fullName ?? '',
+			staffId: user.staffId ?? user.eNumber ?? '',
+			loginUrl: `${process.env.APP_URL ?? ''}`,
+			supportEmail: 'support@esoft.com',
+			year: `${new Date().getFullYear()}`,
+		});
+		try {
+			await this.mailer.sendMail({
+				to: this.getUserEmail(user),
+				subject: 'Password changed successfully',
+				html,
+			});
+		} catch (err) {
+			this.logger.error('Failed to send password changed email', err as any);
+		}
+	}
 
-    if (!foundUser) {
-      throw new BadRequestException('Email not found');
-    }
-
-    // ✅ Normalize the user object to match UserData interface
-    const userData = foundUser.toObject ? foundUser.toObject() : foundUser;
-    const user: UserData = {
-      ...userData,
-      _id: userData._id.toString(),
-      email: userData.emailAddress || userData.email,  // Handles both field names
-      fullName: userData.fullName,
-      forgotPasswordCodeHash: userData.forgotPasswordCodeHash,
-      forgotPasswordCodeExpiresAt: userData.forgotPasswordCodeExpiresAt,
-      forgotPasswordFailedAttempts: userData.forgotPasswordFailedAttempts || 0,
-      role: userType === 'student' ? 'student' : (userData.role || 'staff'),
-      save: foundUser.save.bind(foundUser),
-    } as UserData;
-
-    return { user, foundUser, userType };
-  }
-
-  // Get correct JWT secret based on user type
-
-  private getJwtSecret(userType: 'student' | 'staff', role?: string): string {
-    if (userType === 'student') {
-      return process.env.STUDENT_JWT_SECRET_KEY || 'student-secret';
-    }
-
-    if (role === 'admin') {
-      return process.env.ADMIN_JWT_SECRET || 'admin-secret';
-    }
-
-    return process.env.STAFF_JWT_SECRET || 'staff-secret';
-  }
-
-  //Render email template with variables
-  private async renderTemplate(
-    fileName: string,
-    variables: Record<string, string>,
-  ): Promise<string> {
-    const templatePath = this.resolveTemplatePath(fileName);
-    const content = await readFile(templatePath, 'utf-8');
-    return Object.entries(variables).reduce((acc, [key, value]) => {
-      const pattern = new RegExp(`\\$\\{${key}\\}`, 'g');
-      return acc.replace(pattern, value ?? '');
-    }, content);
-  }
-
-  //Resolve email template path
-  private resolveTemplatePath(fileName: string): string {
-    const distPath = path.join(
-      process.cwd(),
-      'dist',
-      'email-templates',
-      fileName,
-    );
-    if (existsSync(distPath)) return distPath;
-    return path.join(process.cwd(), 'src', 'email-templates', fileName);
-  }
+	private async safeSendEmail(email: string, subject: string, html: string) {
+		try {
+			await this.mailer.sendMail({
+				to: email,
+				subject,
+				html,
+			});
+		} catch (err) {
+			this.logger.error('Failed to send email', err as any);
+		}
+	}
 }

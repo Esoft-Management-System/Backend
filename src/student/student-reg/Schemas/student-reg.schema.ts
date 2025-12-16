@@ -30,13 +30,14 @@ export class StudentRegistration {
   password: string;
 
   @Prop({ default: undefined })
-forgotPasswordCodeHash?: string;
+  forgotPasswordCodeHash?: string;
 
-@Prop({ default: undefined })
-forgotPasswordCodeExpiresAt?: Date;
+  @Prop({ default: undefined })
+  forgotPasswordCodeExpiresAt?: Date;
 
-@Prop({ default: 0 })
-forgotPasswordFailedAttempts?: number;
+  @Prop({ default: 0 })
+  forgotPasswordFailedAttempts?: number;
+
 }
 export const StudentRegistrationSchema =
   SchemaFactory.createForClass(StudentRegistration);

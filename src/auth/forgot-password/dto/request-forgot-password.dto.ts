@@ -1,13 +1,14 @@
-import {ApiProperty} from '@nestjs/swagger';
-import {IsNotEmpty, IsString} from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsIn, IsNotEmpty, IsString } from 'class-validator';
 
 export class RequestForgotPasswordDto {
-    @ApiProperty({
-        type: String,
-        example:'',
-        description: 'Student E-number Or staff ID or Email Address',
-    })
-    @IsNotEmpty({message: 'E-number Or staff ID or Email Address is required'})
-    @IsString()
-    email: string;
+	@ApiProperty({ example: 'user@example.com' })
+	@IsEmail()
+	email: string;
+
+	@ApiProperty({ enum: ['student', 'staff'], example: 'student' })
+	@IsString()
+	@IsNotEmpty()
+	@IsIn(['student', 'staff'])
+	role: 'student' | 'staff';
 }
