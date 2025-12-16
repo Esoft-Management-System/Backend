@@ -45,13 +45,13 @@ export class StaffRequest {
   tempPasswordFailedAttempts?: number;
 
   @Prop()
-forgotPasswordCodeHash?: string;
+  forgotPasswordCodeHash?: string;
 
-@Prop()
-forgotPasswordCodeExpiresAt?: Date;
+  @Prop()
+  forgotPasswordCodeExpiresAt?: Date;
 
-@Prop({ default: 0 })
-forgotPasswordFailedAttempts?: number;
+  @Prop({ default: 0 })
+  forgotPasswordFailedAttempts?: number;
 }
 
 export const StaffRequestSchema = SchemaFactory.createForClass(StaffRequest);
