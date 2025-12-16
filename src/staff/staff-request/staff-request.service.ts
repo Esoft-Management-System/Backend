@@ -53,26 +53,58 @@ export class StaffRequestService {
 
   //================================= Create staff Request ====================================
   async create(dot: CreateStaffRequestDto): Promise<StaffRequest> {
-    const existing = await this.StaffRequestModel.findOne({
-      staffId: dot.staffId,
-      email: dot.email,
-    });
+    const staffId = dot.staffId.trim();
+    const email = dot.email.trim().toLowerCase();
 
-    if (existing) {
+    const existingID = await this.StaffRequestModel.findOne({ staffId });
+
+    const existingEmail = await this.StaffRequestModel.findOne({ email });
+
+    if (existingID) {
       throw new BadRequestException(
-        'A request already exists for this Staff ID and Email. Please wait for approval.',
+        'A request already exists for this Staff ID',
+      );
+    }
+
+    if (existingEmail) {
+      throw new BadRequestException(
+        'A request already exists for this Email.',
       );
     }
 
     try {
       const request = new this.StaffRequestModel({
         ...dot,
+        staffId,
+        email,
         role: dot.role ?? 'staff',
         requestDate: new Date(),
         approved: false,
       });
+      const saved = await request.save();
 
-      return await request.save();
+      try {
+        const html = await this.renderTemplate(
+          'staff-request-success.template.html',
+          {
+            fullName: saved.fullName,
+            staffId: saved.staffId,
+            email: saved.email,
+            designation: saved.designation,
+            role: saved.role,
+          },
+        );
+
+        await this.mailer.sendMail({
+          to: saved.email,
+          subject: 'We received your staff access request',
+          html,
+        });
+      } catch (err) {
+        console.error('Failed to send staff request acknowledgement email', err);
+      }
+
+      return saved;
     } catch (err) {
       console.error(err);
       throw new InternalServerErrorException(
