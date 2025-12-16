@@ -5,7 +5,7 @@ export type StaffRequestDocument = StaffRequest & Document;
 
 @Schema({ timestamps: true })
 export class StaffRequest {
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true, trim: true })
   staffId: string;
 
   @Prop({ required: true })
@@ -17,7 +17,7 @@ export class StaffRequest {
   @Prop({ required: true })
   designation: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true, lowercase: true, trim: true })
   email: string;
 
   @Prop({ required: true })
