@@ -41,7 +41,6 @@ export class AppModule implements NestModule {
     consumer
       .apply(AdminAuthMiddleware)
       .forRoutes(
-        { path: 'staff-requests', method: RequestMethod.GET },
         { path: 'staff-requests/admin/summary', method: RequestMethod.GET },
         { path: 'staff-requests/:id/approve', method: RequestMethod.PATCH },
         { path: 'staff-requests/:id/reapprove', method: RequestMethod.PATCH },
