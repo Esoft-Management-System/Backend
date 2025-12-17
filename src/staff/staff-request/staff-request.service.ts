@@ -26,6 +26,14 @@ export class StaffRequestService {
     private readonly mailer: MailerService,
   ) {}
 
+  private readonly tempPasswordTtlHours = Number(
+    process.env.TEMP_PASSWORD_TTL_HOURS ?? 24,
+  );
+
+  private buildTempPasswordExpiry(): Date {
+    return new Date(Date.now() + this.tempPasswordTtlHours * 60 * 60 * 1000);
+  }
+
   private resolveTemplatePath(fileName: string): string {
     const distPath = path.join(
       process.cwd(),
@@ -118,6 +126,49 @@ export class StaffRequestService {
     return this.StaffRequestModel.find().sort({ createdAt: -1 }).exec();
   }
 
+  async findAdminSummary() {
+    const items = await this.StaffRequestModel.find()
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const now = Date.now();
+    const pending: StaffRequest[] = [];
+    const awaitingPasswordChange: StaffRequest[] = [];
+    const tempPasswordExpired: StaffRequest[] = [];
+    const completed: StaffRequest[] = [];
+
+    for (const item of items) {
+      const isExpired =
+        item.isPasswordTemporary &&
+        item.tempPasswordExpiresAt !== undefined &&
+        new Date(item.tempPasswordExpiresAt).getTime() < now;
+
+      if (!item.approved) {
+        pending.push(item as StaffRequest);
+      } else if (item.isPasswordTemporary && isExpired) {
+        tempPasswordExpired.push(item as StaffRequest);
+      } else if (item.isPasswordTemporary) {
+        awaitingPasswordChange.push(item as StaffRequest);
+      } else {
+        completed.push(item as StaffRequest);
+      }
+    }
+
+    return {
+      counts: {
+        pending: pending.length,
+        awaitingPasswordChange: awaitingPasswordChange.length,
+        tempPasswordExpired: tempPasswordExpired.length,
+        completed: completed.length,
+        total: items.length,
+      },
+      pending,
+      awaitingPasswordChange,
+      tempPasswordExpired,
+      completed,
+    };
+  }
+
   //================================= Approve staff Request ====================================
   async approve(id: string): Promise<StaffRequest> {
     const request = await this.StaffRequestModel.findById(id).exec();
@@ -125,22 +176,36 @@ export class StaffRequestService {
     if (!request) {
       throw new NotFoundException('Request not found');
     }
+    const { update, password } = await this.issueTemporaryPassword(request);
+
+    await this.sendApprovalEmail(update, password);
+
+    return update;
+  }
+
+  private async issueTemporaryPassword(request: StaffRequestDocument) {
     const password = generatePassword(10);
     const passwordHash = await encryptPassword(password);
     request.approved = true;
     request.passwordHash = passwordHash;
     request.isPasswordTemporary = true;
+    request.tempPasswordExpiresAt = this.buildTempPasswordExpiry();
+    request.tempPasswordCodeHash = undefined;
+    request.tempPasswordCodeExpiresAt = undefined;
+    request.tempPasswordFailedAttempts = 0;
     const update = await request.save();
+
+    return { update, password };
+  }
+
+  private async sendApprovalEmail(update: StaffRequest, password: string) {
     try {
-      const html = await this.renderTemplate(
-        'approve-request.template.html',
-        {
-          fullName: update.fullName,
-          role: update.role,
-          staffId: update.staffId,
-          password,
-        },
-      );
+      const html = await this.renderTemplate('approve-request.template.html', {
+        fullName: update.fullName,
+        role: update.role,
+        staffId: update.staffId,
+        password,
+      });
 
       await this.mailer.sendMail({
         to: update.email,
@@ -150,6 +215,34 @@ export class StaffRequestService {
     } catch (err) {
       console.error('Failed to send approval email', err);
     }
+  }
+
+  async reapprove(id: string): Promise<StaffRequest> {
+    const request = await this.StaffRequestModel.findById(id).exec();
+
+    if (!request) {
+      throw new NotFoundException('Request not found');
+    }
+
+    const isExpired =
+      request.tempPasswordExpiresAt === undefined ||
+      request.tempPasswordExpiresAt.getTime() < Date.now();
+
+    if (!request.isPasswordTemporary) {
+      throw new BadRequestException(
+        'User already set a permanent password. Use forgot-password instead.',
+      );
+    }
+
+    if (!isExpired) {
+      throw new BadRequestException(
+        'Temporary password not expired yet. Reapprove after it expires.',
+      );
+    }
+
+    const { update, password } = await this.issueTemporaryPassword(request);
+    await this.sendApprovalEmail(update, password);
+
     return update;
   }
 

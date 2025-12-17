@@ -64,6 +64,14 @@ export class StaffRequestController {
     return { count: items.length, items };
   }
 
+  @Get('admin/summary')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Admin view: categorized staff requests' })
+  @ApiResponse({ status: 200, description: 'Categorized staff requests' })
+  async getAdminSummary() {
+    return this.svc.findAdminSummary();
+  }
+
   //================================= Approve staff Request ====================================
   @Patch(':id/approve')
   @ApiBearerAuth('access-token')
@@ -78,6 +86,23 @@ export class StaffRequestController {
     const updated = await this.svc.approve(id);
     return {
       message: 'Request approved',
+      data: updated,
+    };
+  }
+
+  @Patch(':id/reapprove')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Reapprove an expired temporary password (admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Temporary password reissued',
+    type: StaffRequest,
+  })
+  @ApiNotFoundResponse({ description: 'Request not found' })
+  async reapprove(@Param('id') id: string) {
+    const updated = await this.svc.reapprove(id);
+    return {
+      message: 'Temporary password reissued',
       data: updated,
     };
   }

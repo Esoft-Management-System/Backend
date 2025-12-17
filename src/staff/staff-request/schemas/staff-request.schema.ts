@@ -36,6 +36,9 @@ export class StaffRequest {
   isPasswordTemporary?: boolean;
 
   @Prop()
+  tempPasswordExpiresAt?: Date;
+
+  @Prop()
   tempPasswordCodeHash?: string;
 
   @Prop()

@@ -28,6 +28,16 @@ export class AuthService {
       throw new ForbiddenException('Staff request not approved yet');
     }
 
+    if (
+      user.isPasswordTemporary &&
+      user.tempPasswordExpiresAt &&
+      user.tempPasswordExpiresAt.getTime() < Date.now()
+    ) {
+      throw new ForbiddenException(
+        'Temporary password expired. Please contact admin for reapproval.',
+      );
+    }
+
     if (!user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
     }
