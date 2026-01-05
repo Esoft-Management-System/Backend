@@ -1,17 +1,10 @@
 services:
   - type: web
-    name: backend
+    name: nest-backend
     env: node
     plan: free
-    nodeVersion: 18
-    buildCommand: |
-      npm ci --ignore-scripts
-      npm run build
-      npm prune --production
-    startCommand: npm run start:prod
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
     envVars:
-      - key: NODE_OPTIONS
-        value: --max_old_space_size=512
-      # add your secrets below in the Render dashboard or via sync:
-      # - key: DATABASE_URL
-      #   sync: false
+      - key: NODE_ENV
+        value: production
